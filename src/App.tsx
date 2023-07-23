@@ -5,9 +5,18 @@ import './App.css';
 
 /**
  * State declaration for <App />
+ * Due to TS being a static typed language we use interfaces to describe a
+ * shape being passed in for example if we say that an argument should be of
+ * a shape that implements IState then the compiler will check that it checks
+ * that it has a property called data that is of type ServerRespond[]
+ * 
+ * If we want to make some fields optional we can use ? like so
+ * data?: ServerRespond[] which tells it that it could be there
+ * but not required.
  */
 interface IState {
   data: ServerRespond[],
+  showGraph: boolean
 }
 
 /**
@@ -22,6 +31,7 @@ class App extends Component<{}, IState> {
       // data saves the server responds.
       // We use this state to parse data down to the child element (Graph) as element property
       data: [],
+      showGraph: false
     };
   }
 
@@ -29,19 +39,32 @@ class App extends Component<{}, IState> {
    * Render Graph react component with state.data parse as property data
    */
   renderGraph() {
-    return (<Graph data={this.state.data}/>)
+    if (this.state.showGraph)
+      return (<Graph data={this.state.data} />)
   }
 
   /**
    * Get new data from server and update the state with the new data
    */
   getDataFromServer() {
-    DataStreamer.getData((serverResponds: ServerRespond[]) => {
-      // Update the state by creating a new array of data that consists of
-      // Previous data in the state and the new data from server
-      this.setState({ data: [...this.state.data, ...serverResponds] });
-    });
+    let x = 0;
+    const interval = setInterval(() => {
+      DataStreamer.getData((serverResponds: ServerRespond[]) => {
+        // Update the state by creating a new array of data that consists of
+        // Previous data in the state and the new data from server
+        this.setState({
+          data: serverResponds,
+          showGraph: true
+        });
+      })
+      x++;
+      if (x > 1000){
+        clearInterval(interval);
+      }
+    }
+    , 100);
   }
+
 
   /**
    * Render the App react component
@@ -59,7 +82,7 @@ class App extends Component<{}, IState> {
             // As part of your task, update the getDataFromServer() function
             // to keep requesting the data every 100ms until the app is closed
             // or the server does not return anymore data.
-            onClick={() => {this.getDataFromServer()}}>
+            onClick={() => { this.getDataFromServer() }}>
             Start Streaming Data
           </button>
           <div className="Graph">
